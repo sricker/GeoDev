@@ -153,7 +153,7 @@ int main()
     StdCapture sc;
     sc.BeginCapture();
 
-    system("gphoto2 --auto-detect");
+    system("gphoto2 --usage");
     // cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
 
     sc.EndCapture();
