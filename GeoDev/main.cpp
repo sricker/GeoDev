@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string>
 #include <stdlib.h>
+#include <modbus.h>
 using namespace std;
 
 
@@ -151,13 +152,33 @@ private:
 int main()
 {
     StdCapture sc;
-    sc.BeginCapture();
+//    sc.BeginCapture();
+    int errno = 0;
 
     system("gphoto2 --usage");
     // cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
+    modbus_t *ctx = modbus_new_rtu("/dev/ttyUSB0", 115200, 'N', 8, 1) ;
+    modbus_set_slave(ctx, 1);
 
-    sc.EndCapture();
-    cout << sc.GetCapture() ;
+    if(modbus_connect(ctx) == -1)
+    {
+    	cout << "Connection failed:" << modbus_strerror(errno) << endl;
+    	modbus_free(ctx);
+    	return -1;
+    }
+
+    uint16_t myRegister;
+
+    int result = modbus_read_input_registers(ctx,0xE00,1, &myRegister);
+
+    cout << "result = " << result << endl;
+    cout << "value = " << myRegister << endl;
+//    sc.EndCapture();
+//    cout << sc.GetCapture() ;
+
+    modbus_close(ctx);
+    modbus_free(ctx);
+
     return 0;
 }
 
