@@ -169,7 +169,16 @@ int main()
 
     uint16_t myRegister;
 
+    modbus_flush(ctx);
+
     int result = modbus_read_input_registers(ctx,0xE00,1, &myRegister);
+
+//    if(result == -1)
+//    {
+//    	cout << "Message failed:" << modbus_strerror(errno) << endl;
+//    	modbus_free(ctx);
+//    	return -1;
+//    }
 
     cout << "result = " << result << endl;
     cout << "value = " << myRegister << endl;
