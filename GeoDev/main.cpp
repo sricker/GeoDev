@@ -24,9 +24,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+
 #include <string>
 #include <stdlib.h>
 #include <modbus.h>
+#include <ctime>
+#include <sstream>
+#include <vector>
+#include <iterator>
 using namespace std;
 
 
@@ -148,12 +153,71 @@ private:
     std::string m_captured;
 };
 
+class ReadCommandFile
+{
+	FILE *stream;
+	char *line = NULL;
+	char *filePath ;
+
+public:
+
+	ReadCommandFile(char const *path) : stream(NULL)
+	{
+		filePath = (char *)path;
+	}
+	~ReadCommandFile()
+	{
+
+	}
+
+	template<typename Out>
+	void split(const std::string &s, char delim, Out result)
+	{
+		std::stringstream ss;
+		ss.str(s);
+		std:string item;
+
+		while(std::getline(ss, item, delim))
+		{
+			*(result++) = item;
+		}
+	}
+
+	std::vector<std::string> GetNextLine(void)
+	{
+		size_t len;
+		stream = fopen(filePath, "r");
+
+		if(stream == NULL)
+		{
+			perror("fopen");
+
+		}
+
+		getline(&line, &len, stream);
+
+		std::vector<std::string> elems;
+
+		split(line, '=', std::back_inserter(elems));
+
+		return elems;
+
+
+//		return line;
+	}
+
+
+
+};
+
 
 int main()
 {
     StdCapture sc;
 //    sc.BeginCapture();
     int errno = 0;
+
+
 
     system("gphoto2 --usage");
     // cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
@@ -167,11 +231,23 @@ int main()
     	return -1;
     }
 
-    uint16_t myRegister;
+//    uint16_t myRegister;
 
-    modbus_flush(ctx);
+    std::time_t result = std::time(0);
+    std::cout << std::asctime(std::localtime(&result))
+                  << result << " seconds since the Epoch\n";
 
-    int result = modbus_read_input_registers(ctx,0xE00,1, &myRegister);
+    ReadCommandFile commands("commands.txt");
+
+    std::vector<std::string> nameValuePair = commands.GetNextLine();
+
+    cout << nameValuePair[0] << ":" << nameValuePair[1] << endl;
+
+
+
+//    modbus_flush(ctx);
+
+//    int result = modbus_read_input_registers(ctx,0xE00,1, &myRegister);
 
 //    if(result == -1)
 //    {
@@ -180,8 +256,8 @@ int main()
 //    	return -1;
 //    }
 
-    cout << "result = " << result << endl;
-    cout << "value = " << myRegister << endl;
+//    cout << "result = " << result << endl;
+//    cout << "value = " << myRegister << endl;
 //    sc.EndCapture();
 //    cout << sc.GetCapture() ;
 
