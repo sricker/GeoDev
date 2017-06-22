@@ -32,6 +32,8 @@
 #include <sstream>
 #include <vector>
 #include <iterator>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
 using namespace std;
 
 
@@ -164,6 +166,14 @@ public:
 	ReadCommandFile(char const *path) : stream(NULL)
 	{
 		filePath = (char *)path;
+
+		stream = fopen(filePath, "r");
+
+		if(stream == NULL)
+		{
+			perror("fopen");
+		}
+
 	}
 	~ReadCommandFile()
 	{
@@ -186,24 +196,17 @@ public:
 	std::vector<std::string> GetNextLine(void)
 	{
 		size_t len;
-		stream = fopen(filePath, "r");
-
-		if(stream == NULL)
-		{
-			perror("fopen");
-
-		}
-
-		getline(&line, &len, stream);
-
+		ssize_t readSize;
 		std::vector<std::string> elems;
 
-		split(line, '=', std::back_inserter(elems));
+		readSize = getline(&line, &len, stream);
+
+		if(readSize != -1)
+		{
+			split(line, '=', std::back_inserter(elems));
+		}
 
 		return elems;
-
-
-//		return line;
 	}
 
 
@@ -215,7 +218,7 @@ int main()
 {
     StdCapture sc;
 //    sc.BeginCapture();
-    int errno = 0;
+    int errno;
 
 
 
@@ -239,9 +242,37 @@ int main()
 
     ReadCommandFile commands("commands.txt");
 
-    std::vector<std::string> nameValuePair = commands.GetNextLine();
+    std::vector<std::string> nameValuePair;
 
-    cout << nameValuePair[0] << ":" << nameValuePair[1] << endl;
+//    do
+//    {
+
+//    for(int i = 0; i < 3 ; i++)
+//    {
+//    	nameValuePair = commands.GetNextLine();
+//    	cout << nameValuePair[0] << ":" << nameValuePair[1] << endl;
+//    }
+
+    boost::property_tree::ptree pt;
+    boost::property_tree::ini_parser::read_ini("commands.txt", pt);
+
+    for(auto& section : pt)
+    {
+    	std::cout << '[' << section.first << "]\n" ;
+    	for (auto& key : section.second)
+    	{
+    		std::cout << key.first << "=" << key.second.get_value<std::string>() << "\n";
+    	}
+    }
+
+//    std::cout << pt.get <std::string>("Section1.Value1") << std::endl ;
+//    std::cout << pt.get <std::string>("Section1.Value2") << std::endl ;
+
+
+//
+//    }while(nameValuePair[0] != NULL);
+
+
 
 
 
