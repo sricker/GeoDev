@@ -213,14 +213,19 @@ public:
 
 };
 
+typedef union LongRegister
+{
+	uint8_t asBytes[4];
+	uint16_t asWords [2];
+	int32_t asLong;
+}longRegister_t;
+
 
 int main()
 {
     StdCapture sc;
 //    sc.BeginCapture();
     int errno;
-
-
 
     system("gphoto2 --usage");
     // cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
@@ -234,24 +239,59 @@ int main()
     	return -1;
     }
 
-//    uint16_t myRegister;
-
     std::time_t result = std::time(0);
     std::cout << std::asctime(std::localtime(&result))
                   << result << " seconds since the Epoch\n";
 
+    longRegister_t l_register;
+
+    // write Epoch time
+//    l_register.asLong = result ;
+//
+//    uint8_t temp = l_register.asBytes[0];
+//    l_register.asBytes[0] = l_register.asBytes[1];
+//    l_register.asBytes[1] = temp;
+//    temp = l_register.asBytes[2];
+//    l_register.asBytes[2] = l_register.asBytes[3];
+//    l_register.asBytes[3] = temp;
+
+//    modbus_flush(ctx);
+
+//    int m_result = modbus_write_registers(ctx, 0x100, 2, &l_register.asWords[0]);
+
+//    if(m_result == -1)
+//    {
+//    	cout << "Message failed:" << modbus_strerror(errno) << endl;
+//    	modbus_free(ctx);
+//    	return -1;
+//    }
+    modbus_flush(ctx);
+
+
+
+	int m_result = modbus_read_input_registers(ctx,0x100,2, &l_register.asWords[0]);
+
+    if(m_result == -1)
+    {
+    	cout << "Message failed:" << modbus_strerror(errno) << endl;
+    	modbus_free(ctx);
+    	return -1;
+    }
+
+	cout << "result = " << m_result << endl;
+	cout << "value = " << l_register.asLong << endl;
+
+    std::cout << "time from micro = " << std::asctime(std::localtime((time_t *)&l_register.asLong)) << endl;
+
+
+	modbus_close(ctx);
+	modbus_free(ctx);
+
+
+
     ReadCommandFile commands("commands.txt");
 
     std::vector<std::string> nameValuePair;
-
-//    do
-//    {
-
-//    for(int i = 0; i < 3 ; i++)
-//    {
-//    	nameValuePair = commands.GetNextLine();
-//    	cout << nameValuePair[0] << ":" << nameValuePair[1] << endl;
-//    }
 
     boost::property_tree::ptree pt;
     boost::property_tree::ini_parser::read_ini("commands.txt", pt);
@@ -265,35 +305,8 @@ int main()
     	}
     }
 
-//    std::cout << pt.get <std::string>("Section1.Value1") << std::endl ;
-//    std::cout << pt.get <std::string>("Section1.Value2") << std::endl ;
 
 
-//
-//    }while(nameValuePair[0] != NULL);
-
-
-
-
-
-//    modbus_flush(ctx);
-
-//    int result = modbus_read_input_registers(ctx,0xE00,1, &myRegister);
-
-//    if(result == -1)
-//    {
-//    	cout << "Message failed:" << modbus_strerror(errno) << endl;
-//    	modbus_free(ctx);
-//    	return -1;
-//    }
-
-//    cout << "result = " << result << endl;
-//    cout << "value = " << myRegister << endl;
-//    sc.EndCapture();
-//    cout << sc.GetCapture() ;
-
-    modbus_close(ctx);
-    modbus_free(ctx);
 
     return 0;
 }
