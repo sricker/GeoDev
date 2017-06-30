@@ -224,10 +224,13 @@ typedef union LongRegister
 int main()
 {
     StdCapture sc;
-//    sc.BeginCapture();
+    sc.BeginCapture();
+
     int errno;
 
+
     system("gphoto2 --usage");
+
     // cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
     modbus_t *ctx = modbus_new_rtu("/dev/ttyUSB0", 115200, 'N', 8, 1) ;
     modbus_set_slave(ctx, 1);
@@ -305,7 +308,12 @@ int main()
     	}
     }
 
+    sc.EndCapture();
 
+    ofstream outputFile;
+    outputFile.open("oplog.txt");
+    outputFile << sc.GetCapture() << endl; // write the output to a file
+    outputFile.close();
 
 
     return 0;
