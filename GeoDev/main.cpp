@@ -224,7 +224,7 @@ typedef union LongRegister
 int main()
 {
     StdCapture sc;
-    sc.BeginCapture();
+//    sc.BeginCapture();
 
     int errno;
 
@@ -308,12 +308,12 @@ int main()
     	}
     }
 
-    sc.EndCapture();
+//    sc.EndCapture();
 
-    ofstream outputFile;
-    outputFile.open("oplog.txt");
-    outputFile << sc.GetCapture() << endl; // write the output to a file
-    outputFile.close();
+//    ofstream outputFile;
+//    outputFile.open("oplog.txt");
+//    outputFile << sc.GetCapture() << endl; // write the output to a file
+//    outputFile.close();
 
 
     return 0;
