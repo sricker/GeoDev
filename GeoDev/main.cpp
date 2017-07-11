@@ -36,6 +36,7 @@
 #include <boost/property_tree/ini_parser.hpp>
 using namespace std;
 
+//#define CAPTURE_STDIO
 
 
 class StdCapture
@@ -223,14 +224,22 @@ typedef union LongRegister
 
 int main()
 {
+#ifdef CAPTURE_STDIO
     StdCapture sc;
-//    sc.BeginCapture();
-
+    sc.BeginCapture();
+#endif
     int errno;
 
 
-    system("gphoto2 --usage");
 
+
+
+//    system("gphoto2 --usage");
+
+
+
+
+/*
     // cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
     modbus_t *ctx = modbus_new_rtu("/dev/ttyUSB0", 115200, 'N', 8, 1) ;
     modbus_set_slave(ctx, 1);
@@ -289,15 +298,16 @@ int main()
 
 	modbus_close(ctx);
 	modbus_free(ctx);
+	*/
 
+//    ReadCommandFile commands("commands_new.txt");
 
-
-    ReadCommandFile commands("commands.txt");
+    system("./uploader download commands.txt commands_new.txt");  // download the command file
 
     std::vector<std::string> nameValuePair;
 
     boost::property_tree::ptree pt;
-    boost::property_tree::ini_parser::read_ini("commands.txt", pt);
+    boost::property_tree::ini_parser::read_ini("commands_new.txt", pt);
 
     for(auto& section : pt)
     {
@@ -305,16 +315,20 @@ int main()
     	for (auto& key : section.second)
     	{
     		std::cout << key.first << "=" << key.second.get_value<std::string>() << "\n";
+    		if(key.first.compare(0,12,"command_line") == 0) // compare
+    		{
+  				system(key.second.get_value<std::string>().c_str());
+    		}
     	}
     }
 
-//    sc.EndCapture();
-
-//    ofstream outputFile;
-//    outputFile.open("oplog.txt");
-//    outputFile << sc.GetCapture() << endl; // write the output to a file
-//    outputFile.close();
-
+#ifdef CAPTURE_STDIO
+    sc.EndCapture();
+    ofstream outputFile;
+    outputFile.open("oplog.txt");
+    outputFile << sc.GetCapture() << endl; // write the output to a file
+    outputFile.close();
+#endif
 
     return 0;
 }
