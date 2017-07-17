@@ -17,6 +17,8 @@
 #include <stdint.h>
 #include <modbus.h>
 #include <ctime>
+#include <sstream>
+
 using namespace std;
 
 typedef union LongRegister
@@ -26,10 +28,35 @@ typedef union LongRegister
     int32_t asLong;
 } longRegister_t;
 
+bool isBigEndian()
+{
+	union{
+		uint32_t asLong;
+		uint8_t asBytes[4];
+	}test_union;
+
+	test_union.asLong = 1;
+
+	return test_union.asBytes[0] == 0;
+
+}
+
 #define WAIT_CYCLES  	20
 const std::string WAIT_TIME = "5";
 
 const std::string cmdFile = "commands_new.txt";
+
+
+namespace patch
+{
+    template < typename T > std::string to_string( const T& n )
+    {
+        std::ostringstream stm ;
+        stm << n ;
+        return stm.str() ;
+    }
+}
+
 
 std::string GetLineFromFileContaining(std::string match)
 {
@@ -120,6 +147,40 @@ std::string ExecuteShellCommand(std::string command)
     return str;
 }
 
+static void HostLongToModbusWords(uint32_t * in, uint16_t * out )
+{
+	longRegister_t val;
+	val.asLong = *in;
+
+//	uint8_t temp = val.asBytes[0];
+//	val.asBytes[0] = val.asBytes[1];
+//	val.asBytes[1] = temp;
+//	temp = val.asBytes[2];
+//	val.asBytes[2] = val.asBytes[3];
+//	val.asBytes[3] = temp;
+
+	out[0] = val.asWords[0];
+	out[1] = val.asWords[1];
+}
+
+static void ModbusWordsToHostLong(uint16_t * in, uint32_t * out)
+{
+	longRegister_t val;
+
+	val.asWords[0] = in[0];
+	val.asWords[1] = in[1];
+
+//	uint8_t temp = val.asBytes[0];
+//	val.asBytes[0] = val.asBytes[1];
+//	val.asBytes[1] = temp;
+//	temp = val.asBytes[2];
+//	val.asBytes[2] = val.asBytes[3];
+//	val.asBytes[3] = temp;
+
+	*out = val.asLong;
+}
+
+
 int Modbus()
 {
     int errno;
@@ -139,52 +200,53 @@ int Modbus()
     std::cout << std::asctime(std::localtime(&result)) << result
             << " seconds since the Epoch\n";
 
-    longRegister_t l_register;
+    uint16_t time_s[2];
 
-    // write Epoch time
-    //    l_register.asLong = result ;
-    //
-    //    uint8_t temp = l_register.asBytes[0];
-    //    l_register.asBytes[0] = l_register.asBytes[1];
-    //    l_register.asBytes[1] = temp;
-    //    temp = l_register.asBytes[2];
-    //    l_register.asBytes[2] = l_register.asBytes[3];
-    //    l_register.asBytes[3] = temp;
+    HostLongToModbusWords((uint32_t *)&result, &time_s[0]);
 
-    //    modbus_flush(ctx);
+    //	write Epoch time
+	modbus_flush(ctx);
 
-    //    int m_result = modbus_write_registers(ctx, 0x100, 2, &l_register.asWords[0]);
+//	int m_result = modbus_write_registers(ctx, 0x100, 2, &time_s[0] );
+//
+//	if(m_result == -1)
+//	{
+//		cout << "Message failed:" << modbus_strerror(errno) << endl;
+////		modbus_free(ctx);
+////		return -1;
+//	}
 
-    //    if(m_result == -1)
-    //    {
-    //    	cout << "Message failed:" << modbus_strerror(errno) << endl;
-    //    	modbus_free(ctx);
-    //    	return -1;
-    //    }
+	system("sleep 5");
 
+    // read epoch time
     modbus_flush(ctx);
 
-    int m_result = modbus_read_input_registers(ctx, 0x100, 2,
-            &l_register.asWords[0]);
+    int m_result = modbus_read_input_registers(ctx, 0x100, 2, &time_s[0]);
+
+    time_t micro_time;
+
+    ModbusWordsToHostLong(&time_s[0], (uint32_t *)&micro_time);
 
     if (m_result == -1)
     {
         cout << "Message failed:" << modbus_strerror(errno) << endl;
-        modbus_free (ctx);
-        return -1;
+//        modbus_free (ctx);
+//        return -1;
     }
 
     cout << "result = " << m_result << endl;
-    cout << "value = " << l_register.asLong << endl;
+    cout << "value = " << micro_time << endl;
 
     std::cout << "time from micro = "
-            << std::asctime(std::localtime((time_t *) &l_register.asLong))
+            << std::asctime(std::localtime(&micro_time))
             << endl;
 
     modbus_close(ctx);
     modbus_free(ctx);
-
+    return -1;
 }
+
+
 
 int main()
 {
@@ -193,14 +255,41 @@ int main()
     std::string result;
     std::size_t position;
 
-    system("ls -al");
-    system("sleep 5");
+//    system("ls -al");
+//    system("sleep 5");
     system("mv log.txt logbak.txt");
 
     try
     {
+//    	std::cout << "big endian = " << (isBigEndian() ? "true" : "false") << endl;
+//
+//    	longRegisterDataField lrdf(0x596BF2CA);
+//
+//        std::time_t timeNow = std::time(0);
+//
+//        std::cout << std::asctime(std::localtime(&timeNow)) << timeNow
+//                << " seconds since the Epoch\n";
+//
+//        longRegister_t timeSeconds;
+//
+//        // get time in seconds from the micro
+//        ExecuteShellCommand("mbpoll -1 -0 -a 1 -t 3:int -r 256 -c 1 -b 115200 -P none /dev/ttyUSB0");
+//
+//        std::string lsw = GetLineFromFileContaining("[256]:");
+//        std::string msw = GetLineFromFileContaining("[257]:");
+//
+//        std::string modbusCmd = "mbpoll -0 -r 256 -P none -b 115200 /dev/ttyUSB0 "
+//        		+ patch::to_string(timeSeconds.asWords[1]) + " " + patch::to_string(timeSeconds.asWords[0]);
+//
+//        ExecuteShellCommand( modbusCmd );
 
-        Modbus();
+    	Modbus();
+
+        exit(0);
+
+
+
+//        Modbus();
 
 
         cout << "checking connection" << endl << std::flush;
@@ -225,9 +314,14 @@ int main()
         if (tries >= WAIT_CYCLES)
         {
             WriteToOutputFile("echo exceeded number of tries to establish connection. aborting cycle\r");
-            //    	ExecuteShellCommand("");  // shutdown
+
 
         }
+        else
+        {
+        	exit(-1);
+        }
+
 
         ExecuteShellCommand("./uploader download commands.txt commands_new.txt\r");
 
